@@ -7,8 +7,8 @@
  * See http://azure.github.io/azure-documentdb-node/DocumentClient.html
  *
  */
-
 import * as DocumentDb from "documentdb";
+export const DEFAULT_DATABASE_NAME = "development";
 
 //
 // Definition of types
@@ -43,12 +43,20 @@ export interface IResultIterator<T> {
 // Definition of functions
 //
 
+export const getDocumentDBClient = (
+  cosmosDbUri: string = process.env.CUSTOMCONNSTR_COSMOSDB_URI,
+  cosmosDbKey: string = process.env.CUSTOMCONNSTR_COSMOSDB_KEY
+) => new DocumentDb.DocumentClient(cosmosDbUri, { masterKey: cosmosDbKey });
+
 /**
  * Returns the URL for a DocumentDB database
  *
  * @param databaseName The name of the database
  */
-export function getDatabaseUrl(databaseName: string): DocumentDbDatabaseUrl {
+export function getDatabaseUrl(
+  databaseName: string = process.env.COSMOSDB_DATABASE_NAME ||
+    DEFAULT_DATABASE_NAME
+): DocumentDbDatabaseUrl {
   return `dbs/${databaseName}` as DocumentDbDatabaseUrl;
 }
 
@@ -58,7 +66,10 @@ export function getDatabaseUrl(databaseName: string): DocumentDbDatabaseUrl {
  * @param databaseUrl The URL of the database
  * @param collectionName The name of the collection
  */
-export function getCollectionUrl(databaseUrl: DocumentDbDatabaseUrl, collectionName: string): DocumentDbCollectionUrl {
+export function getCollectionUrl(
+  databaseUrl: DocumentDbDatabaseUrl,
+  collectionName: string
+): DocumentDbCollectionUrl {
   return `${databaseUrl}/colls/${collectionName}` as DocumentDbCollectionUrl;
 }
 
@@ -68,7 +79,10 @@ export function getCollectionUrl(databaseUrl: DocumentDbDatabaseUrl, collectionN
  * @param collectionUrl The URL of the collection
  * @param documentId The ID of the document
  */
-export function getDocumentUrl(collectionUrl: DocumentDbCollectionUrl, documentId: string): DocumentDbDocumentUrl {
+export function getDocumentUrl(
+  collectionUrl: DocumentDbCollectionUrl,
+  documentId: string
+): DocumentDbDocumentUrl {
   return `${collectionUrl}/docs/${documentId}` as DocumentDbDocumentUrl;
 }
 
@@ -80,7 +94,7 @@ export function getDocumentUrl(collectionUrl: DocumentDbCollectionUrl, documentI
  */
 export function readDatabase(
   client: DocumentDb.DocumentClient,
-  databaseUrl: DocumentDbDatabaseUrl,
+  databaseUrl: DocumentDbDatabaseUrl
 ): Promise<DocumentDb.DatabaseMeta> {
   return new Promise((resolve, reject) => {
     client.readDatabase(databaseUrl, (err, result) => {
@@ -101,7 +115,7 @@ export function readDatabase(
  */
 export function readCollection(
   client: DocumentDb.DocumentClient,
-  collectionUrl: DocumentDbCollectionUrl,
+  collectionUrl: DocumentDbCollectionUrl
 ): Promise<DocumentDb.CollectionMeta> {
   return new Promise((resolve, reject) => {
     client.readCollection(collectionUrl, (err, result) => {
@@ -123,7 +137,7 @@ export function readCollection(
 export function createDocument<T>(
   client: DocumentDb.DocumentClient,
   collectionUrl: DocumentDbCollectionUrl,
-  document: T & DocumentDb.NewDocument,
+  document: T & DocumentDb.NewDocument
 ): Promise<T & DocumentDb.RetrievedDocument> {
   return new Promise((resolve, reject) => {
     client.createDocument(collectionUrl, document, (err, created) => {
@@ -145,18 +159,22 @@ export function createDocument<T>(
 export function readDocument<T>(
   client: DocumentDb.DocumentClient,
   documentUrl: DocumentDbDocumentUrl,
-  partitionKey: string | string[],
+  partitionKey: string | string[]
 ): Promise<T & DocumentDb.RetrievedDocument> {
   return new Promise((resolve, reject) => {
-    client.readDocument(documentUrl, {
-      partitionKey,
-    }, (err, result) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(result as T & DocumentDb.RetrievedDocument);
+    client.readDocument(
+      documentUrl,
+      {
+        partitionKey
+      },
+      (err, result) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(result as T & DocumentDb.RetrievedDocument);
+        }
       }
-    });
+    );
   });
 }
 
@@ -170,10 +188,12 @@ export function readDocument<T>(
 export function queryDocuments<T>(
   client: DocumentDb.DocumentClient,
   collectionUrl: DocumentDbCollectionUrl,
-  query: DocumentDb.DocumentQuery,
+  query: DocumentDb.DocumentQuery
 ): IResultIterator<Array<T & DocumentDb.RetrievedDocument>> {
   const documentIterator = client.queryDocuments(collectionUrl, query);
-  const resultIterator: IResultIterator<Array<T & DocumentDb.RetrievedDocument>> = {
+  const resultIterator: IResultIterator<
+    Array<T & DocumentDb.RetrievedDocument>
+  > = {
     executeNext: () => {
       return new Promise((resolve, reject) => {
         documentIterator.executeNext((error, resource, _) => {
@@ -184,7 +204,7 @@ export function queryDocuments<T>(
           }
         });
       });
-    },
+    }
   };
   return resultIterator;
 }
@@ -199,19 +219,19 @@ export function queryDocuments<T>(
 export function queryOneDocument<T>(
   client: DocumentDb.DocumentClient,
   collectionUrl: DocumentDbCollectionUrl,
-  query: DocumentDb.DocumentQuery,
+  query: DocumentDb.DocumentQuery
 ): Promise<T | null> {
   const iterator = queryDocuments<T>(client, collectionUrl, query);
   return new Promise((resolve, reject) => {
     iterator.executeNext().then(
-      (result) => {
+      result => {
         if (result != null && result.length > 0) {
           resolve(result[0]);
         } else {
           resolve(null);
         }
       },
-      (error) => reject(error),
+      error => reject(error)
     );
   });
 }

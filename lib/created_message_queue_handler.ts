@@ -4,33 +4,22 @@
  * recipient of the message gets retrieved and a notification gets delivered
  * to each configured channel.
  */
-
 import { IContext } from "./azure-functions-types";
-
-import { DocumentClient as DocumentDBClient } from "documentdb";
-
 import * as documentDbUtils from "./utils/documentdb";
 
-import { ICreatedMessageEvent, isICreatedMessageEvent } from "./models/created_message_event";
+import {
+  ICreatedMessageEvent,
+  isICreatedMessageEvent
+} from "./models/created_message_event";
 import { IEmailNotificationEvent } from "./models/email_notification_event";
 import { ProfileModel } from "./models/profile";
 
 // Setup DocumentDB
 
-const COSMOSDB_URI: string = process.env.CUSTOMCONNSTR_COSMOSDB_URI;
-const COSMOSDB_KEY: string = process.env.CUSTOMCONNSTR_COSMOSDB_KEY;
-
-// TODO: read from env vars
-const documentDbDatabaseUrl = documentDbUtils.getDatabaseUrl("development");
-const profilesCollectionUrl = documentDbUtils.getCollectionUrl(documentDbDatabaseUrl, "profiles");
-
-const documentClient = new DocumentDBClient(COSMOSDB_URI, { masterKey: COSMOSDB_KEY });
-
-const profileModel = new ProfileModel(documentClient, profilesCollectionUrl);
-
-//
-// Main function
-//
+const profileModel = new ProfileModel(
+  documentDbUtils.getDocumentDBClient(),
+  documentDbUtils.getCollectionUrl(documentDbUtils.getDatabaseUrl(), "profiles")
+);
 
 /**
  * Input and output bindings for this function
@@ -50,7 +39,10 @@ export function index(context: IContextWithBindings) {
   // since this function gets triggered by a queued message that gets
   // deserialized from a json object, we must first check that what we
   // got is what we expect.
-  if (context.bindings.createdMessage != null && isICreatedMessageEvent(context.bindings.createdMessage)) {
+  if (
+    context.bindings.createdMessage != null &&
+    isICreatedMessageEvent(context.bindings.createdMessage)
+  ) {
     // it is an ICreatedMessageEvent
     const createdMessageEvent = context.bindings.createdMessage;
     context.log(`Dequeued message|${createdMessageEvent.message.fiscalCode}`);
@@ -59,10 +51,12 @@ export function index(context: IContextWithBindings) {
 
     // async fetch of profile data associated to the fiscal code the message
     // should be delivered to
-    const profilePromise = profileModel.findOneProfileByFiscalCode(retrievedMessage.fiscalCode);
+    const profilePromise = profileModel.findOneProfileByFiscalCode(
+      retrievedMessage.fiscalCode
+    );
 
     profilePromise.then(
-      (retrievedProfile) => {
+      retrievedProfile => {
         if (retrievedProfile != null) {
           // we got a valid profile associated to the message, we can trigger
           // notifications on the configured channels.
@@ -70,15 +64,17 @@ export function index(context: IContextWithBindings) {
 
           // in case an email address is configured in the profile, we can
           // trigger an email notification event
-          context.log.verbose(`Queing email notification|${retrievedProfile.email}|${retrievedMessage.bodyShort}`);
+          context.log.verbose(
+            `Queing email notification|${retrievedProfile.email}|${retrievedMessage.bodyShort}`
+          );
           if (retrievedProfile.email != null) {
             context.bindings.emailNotification = {
               message: retrievedMessage,
-              recipients: [ retrievedProfile.email ],
+              recipients: [retrievedProfile.email]
             };
           } else {
             context.log.warn(
-              `Profile is missing email address|${retrievedMessage.fiscalCode}`,
+              `Profile is missing email address|${retrievedMessage.fiscalCode}`
             );
           }
 
@@ -90,12 +86,14 @@ export function index(context: IContextWithBindings) {
           context.done();
         }
       },
-      (error) => {
-        context.log.error(`Error while querying profile, retrying|${retrievedMessage.fiscalCode}|${error}`);
+      error => {
+        context.log.error(
+          `Error while querying profile, retrying|${retrievedMessage.fiscalCode}|${error}`
+        );
         // in case of error, we return a failure to trigger a retry (up to the configured max retries)
         // TODO: schedule next retry with exponential backoff
         context.done(error);
-      },
+      }
     );
   } else {
     context.log.error(`Fatal! No valid message found in bindings.`);

@@ -1,51 +1,85 @@
 /**
  * Main entrypoint for the public APIs handlers
  */
-
+import { createAzureFunctionHandler } from "azure-function-express-cloudify";
 import * as express from "express";
 
-import { DocumentClient as DocumentDBClient } from "documentdb";
-
-import * as documentDbUtils from "./utils/documentdb";
-
-import { createAzureFunctionHandler } from "azure-function-express-cloudify";
-
-import { MessageModel } from "./models/message";
-import { ProfileModel } from "./models/profile";
-
-import debugHandler from "./controllers/debug";
-import { CreateMessage, GetMessage, GetMessages } from "./controllers/messages";
-import { GetProfile, UpdateProfile } from "./controllers/profiles";
+import * as yaml from "js-yaml";
+import * as jsonRefs from "json-refs";
+import * as swaggerExpress from "swagger-express-mw";
 
 // Setup Express
 
+const APIs = [
+  __dirname + "./specs/notifications-public.yaml",
+  __dirname + "./specs/preferences.yaml"
+];
+
 const app = express();
 
-// Setup DocumentDB
+/////////////////
 
-const COSMOSDB_URI: string = process.env.CUSTOMCONNSTR_COSMOSDB_URI;
-const COSMOSDB_KEY: string = process.env.CUSTOMCONNSTR_COSMOSDB_KEY;
+const resolveSwaggerSpecs = (apiPath: string) =>
+  jsonRefs.resolveRefsAt(apiPath, {
+    // Resolve all remote references
+    filter: ["relative", "remote"],
+    loaderOptions: {
+      processContent: (res: any, cb: any) =>
+        cb(undefined, yaml.safeLoad(res.text))
+    }
+  });
 
-const documentDbDatabaseUrl = documentDbUtils.getDatabaseUrl(process.env.COSMOSDB_NAME || "development");
-const messagesCollectionUrl = documentDbUtils.getCollectionUrl(documentDbDatabaseUrl, "messages");
-const profilesCollectionUrl = documentDbUtils.getCollectionUrl(documentDbDatabaseUrl, "profiles");
+// @see https://github.com/theganyo/swagger-node-runner/releases/tag/v0.6.4
+const setSwaggerReponseValidationErrorHandler = (
+  middleware: swaggerExpress.ConnectMiddleware
+) =>
+  middleware.runner.on(
+    "responseValidationError",
+    (validationResponse: any, req: express.Request, res: express.Response) => {
+      const context = req.get("context") as any;
+      context.log("error in validation");
+      context.log(validationResponse.errors);
+      // console.dir(validationResponse.errors, { depth: 4 })
+      res.status(500).json(validationResponse);
+    }
+  );
 
-const documentClient = new DocumentDBClient(COSMOSDB_URI, { masterKey: COSMOSDB_KEY });
+const registerSwaggerMiddleware = (config: any) =>
+  new Promise((resolve, reject) => {
+    swaggerExpress.create(
+      config,
+      (err: Error, middleware: swaggerExpress.ConnectMiddleware) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        middleware.register(app);
+        setSwaggerReponseValidationErrorHandler(middleware);
+        resolve(app);
+      }
+    );
+  });
 
-const profileModel = new ProfileModel(documentClient, profilesCollectionUrl);
-const messageModel = new MessageModel(documentClient, messagesCollectionUrl);
+const setupswaggerApi = (apiPath: string) =>
+  resolveSwaggerSpecs(apiPath).then((swaggerSpecs: any) => {
+    registerSwaggerMiddleware({
+      appRoot: __dirname,
+      swagger: swaggerSpecs.resolved
+      // swaggerFile: `${__dirname}/api/file.yaml`
+    });
+  });
 
-// Setup handlers
+// @TODO make this async
+Promise.all(APIs.map(setupswaggerApi)).then(() => {
+  "initialized";
+});
 
-app.get("/api/v1/debug", debugHandler);
-app.post("/api/v1/debug", debugHandler);
-
-app.get("/api/v1/profiles/:fiscalcode", GetProfile(profileModel));
-app.post("/api/v1/profiles/:fiscalcode", UpdateProfile(profileModel));
-
-app.get("/api/v1/messages/:fiscalcode/:id", GetMessage(messageModel));
-app.get("/api/v1/messages/:fiscalcode", GetMessages(messageModel));
-app.post("/api/v1/messages/:fiscalcode", CreateMessage(messageModel));
+const handler = createAzureFunctionHandler(app);
 
 // Binds the express app to an Azure Function handler
-module.exports = createAzureFunctionHandler(app);
+module.exports = (context: any) => {
+  app.set("context", context);
+  console.log = context.log;
+  context.log("started");
+  return handler(context);
+};

@@ -1,54 +1,56 @@
-import * as DocumentDb from "documentdb";
-import * as DocumentDbUtils from "../utils/documentdb";
+import * as DocumentDb from "documentdb"
+import * as DocumentDbUtils from "../utils/documentdb"
 
-import { FiscalCode, isFiscalCode } from "../utils/fiscalcode";
+import { FiscalCode, isFiscalCode } from "../utils/fiscalcode"
 
 /**
  * Base interface for Message objects
  */
 export interface IMessage {
-  fiscalCode: FiscalCode;
-  bodyShort: string;
+  fiscalCode: FiscalCode
+  bodyShort: string
 }
 
 /**
  * Type guard for IMessage objects
  */
 export function isIMessage(arg: any): arg is IMessage {
-  return isFiscalCode(arg.fiscalCode) && (typeof arg.bodyShort === "string");
+  return isFiscalCode(arg.fiscalCode) && typeof arg.bodyShort === "string"
 }
 
 /**
  * Interface for new Message objects
  */
-export interface INewMessage extends IMessage, DocumentDb.NewDocument { }
+export interface INewMessage extends IMessage, DocumentDb.NewDocument {}
 
 /**
  * Interface for retrieved Message objects
  */
-interface IRetrievedMessageRW extends IMessage, DocumentDb.RetrievedDocument { }
+interface IRetrievedMessageRW extends IMessage, DocumentDb.RetrievedDocument {}
 
 /**
  * Read-only interface for retrieved Message objects
  */
-export type IRetrievedMessage = Readonly<IRetrievedMessageRW>;
+export type IRetrievedMessage = Readonly<IRetrievedMessageRW>
 
 /**
  * Type guard for IRetrievedMessage objects
  */
 export function isIRetrievedMessage(arg: any): arg is IRetrievedMessage {
-  return (typeof arg.id === "string") &&
-    (typeof arg._self === "string") &&
-    (typeof arg._ts === "number") &&
-    isIMessage(arg);
+  return (
+    typeof arg.id === "string" &&
+    typeof arg._self === "string" &&
+    typeof arg._ts === "number" &&
+    isIMessage(arg)
+  )
 }
 
 /**
  * A model for handling Messages
  */
 export class MessageModel {
-  private dbClient: DocumentDb.DocumentClient;
-  private collectionUrl: DocumentDbUtils.DocumentDbCollectionUrl;
+  private dbClient: DocumentDb.DocumentClient
+  private collectionUrl: DocumentDbUtils.DocumentDbCollectionUrl
 
   /**
    * Creates a new Message model
@@ -56,9 +58,12 @@ export class MessageModel {
    * @param dbClient the DocumentDB client
    * @param collectionUrl the collection URL
    */
-  constructor(dbClient: DocumentDb.DocumentClient, collectionUrl: DocumentDbUtils.DocumentDbCollectionUrl) {
-    this.dbClient = dbClient;
-    this.collectionUrl = collectionUrl;
+  constructor(
+    dbClient: DocumentDb.DocumentClient,
+    collectionUrl: DocumentDbUtils.DocumentDbCollectionUrl
+  ) {
+    this.dbClient = dbClient
+    this.collectionUrl = collectionUrl
   }
 
   /**
@@ -70,9 +75,9 @@ export class MessageModel {
     const createdDocument = await DocumentDbUtils.createDocument(
       this.dbClient,
       this.collectionUrl,
-      message,
-    );
-    return createdDocument;
+      message
+    )
+    return createdDocument
   }
 
   /**
@@ -80,11 +85,14 @@ export class MessageModel {
    *
    * @param messageId The ID of the message
    */
-  public findMessage(fiscalCode: FiscalCode, messageId: string): Promise<IRetrievedMessage | null> {
+  public findMessage(
+    fiscalCode: string,
+    messageId: string
+  ): Promise<IRetrievedMessage | null> {
     const documentUrl = DocumentDbUtils.getDocumentUrl(
       this.collectionUrl,
-      messageId,
-    );
+      messageId
+    )
     return new Promise((resolve, reject) => {
       // To properly handle "not found" case vs other errors
       // we need to handle the Promise returned by readDocument
@@ -93,18 +101,18 @@ export class MessageModel {
       DocumentDbUtils.readDocument<IMessage>(
         this.dbClient,
         documentUrl,
-        fiscalCode,
+        fiscalCode
       ).then(
         (document) => resolve(document),
         (error: DocumentDb.QueryError) => {
           if (error.code === 404) {
-            resolve(null);
+            resolve(null)
           } else {
-            reject(error);
+            reject(error)
           }
-        },
-      );
-    });
+        }
+      )
+    })
   }
 
   /**
@@ -113,12 +121,15 @@ export class MessageModel {
    * @param fiscalCode The fiscal code of the recipient
    * @param messageId The ID of the message
    */
-  public async findMessageForRecipient(fiscalCode: FiscalCode, messageId: string): Promise<IRetrievedMessage | null> {
-    const message = await this.findMessage(fiscalCode, messageId);
+  public async findMessageForRecipient(
+    fiscalCode: string,
+    messageId: string
+  ): Promise<IRetrievedMessage | null> {
+    const message = await this.findMessage(fiscalCode, messageId)
     if (message != null && message.fiscalCode === fiscalCode) {
-      return message;
+      return message
     } else {
-      return null;
+      return null
     }
   }
 
@@ -127,18 +138,17 @@ export class MessageModel {
    *
    * @param fiscalCode The fiscal code of the recipient
    */
-  public findMessages(fiscalCode: FiscalCode): DocumentDbUtils.IResultIterator<IRetrievedMessage[]> {
-    return DocumentDbUtils.queryDocuments(
-      this.dbClient,
-      this.collectionUrl,
-      {
-        parameters: [{
+  public findMessages(
+    fiscalCode: string
+  ): DocumentDbUtils.IResultIterator<IRetrievedMessage[]> {
+    return DocumentDbUtils.queryDocuments(this.dbClient, this.collectionUrl, {
+      parameters: [
+        {
           name: "@fiscalCode",
-          value: fiscalCode,
-        }],
-        query: "SELECT * FROM messages m WHERE (m.fiscalCode = @fiscalCode)",
-      },
-    );
+          value: fiscalCode
+        }
+      ],
+      query: "SELECT * FROM messages m WHERE (m.fiscalCode = @fiscalCode)"
+    })
   }
-
 }
