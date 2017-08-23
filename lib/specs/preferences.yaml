@@ -11,6 +11,8 @@
   schemes:
     - "https"
   paths:
+    /specs/preferences-public:
+      x-swagger-pipe: swagger_raw
     /preferences/{fiscal_code}:
       x-swagger-router-controller: "Preferences"
       get:

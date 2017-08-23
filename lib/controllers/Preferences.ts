@@ -14,14 +14,14 @@ const Profile = new ProfileModel(
  *
  * @TODO only return public visible attributes
  */
-export function GetProfile(
+export function getUserPreferences(
   request: express.Request,
   response: express.Response
 ) {
   const fiscalCode = (request as any).swagger.params.fiscal_code.value;
   Profile.findOneProfileByFiscalCode(fiscalCode).then(result => {
     if (result != null) {
-      response.json(result);
+      response.json({ fiscal_code: result.fiscalCode, email: result.email });
     } else {
       response.status(404).send("Not found");
     }
