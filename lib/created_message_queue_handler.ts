@@ -5,14 +5,13 @@
  * to each configured channel.
  */
 import { IContext } from "./azure-functions-types";
-import * as documentDbUtils from "./utils/documentdb";
-
 import {
   ICreatedMessageEvent,
   isICreatedMessageEvent
 } from "./models/created_message_event";
 import { IEmailNotificationEvent } from "./models/email_notification_event";
 import { ProfileModel } from "./models/profile";
+import * as documentDbUtils from "./utils/documentdb";
 
 // Setup DocumentDB
 

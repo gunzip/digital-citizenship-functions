@@ -1,6 +1,6 @@
 import * as express from "express";
-import { INewProfile, ProfileModel } from "../../models/profile";
-import * as documentDbUtils from "../../utils/documentdb";
+import { INewProfile, ProfileModel } from "../models/profile";
+import * as documentDbUtils from "../utils/documentdb";
 
 const Profile = new ProfileModel(
   documentDbUtils.getDocumentDBClient(),

@@ -21,6 +21,7 @@
     "@types/express": "^4.0.36",
     "@types/node": "^6.0.0",
     "@types/nodemailer": "^3.1.1",
+    "azure-function-express": "^1.2.2",
     "azure-storage": "^2.2.2",
     "codice-fiscale-italiano": "^1.0.1",
     "documentdb": "^1.12.2",
@@ -29,11 +30,7 @@
     "json-refs": "^3.0.0",
     "nodemailer": "^4.0.1",
     "nodemailer-sendgrid-transport": "^0.2.0",
-<<<<<<< HEAD
-=======
-    "shelljs": "^0.7.8",
     "swagger-express-mw": "^0.7.0",
->>>>>>> dev-envinroment-swagger
     "ts-option": "^1.1.4",
     "typescript": "^2.4.2",
     "ulid": "^0.2.0"

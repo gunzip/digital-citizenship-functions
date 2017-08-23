@@ -1,14 +1,10 @@
 {
-  "defaultSeverity": "warning",
+  "defaultSeverity": "error",
   "extends": [
     "tslint:recommended",
     "tslint-config-prettier"
   ],
   "jsRules": {},
-  "rules": {
-    "semicolon": [false, "never"],
-    "trailing-comma": [false],
-    "quotemark": [true, "double"]
-  },
+  "rules": {},
   "rulesDirectory": []
 }

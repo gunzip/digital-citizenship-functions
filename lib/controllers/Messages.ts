@@ -1,9 +1,9 @@
 import * as express from "express";
 import * as ulid from "ulid";
-import { IContext } from "../../azure-functions-types";
-import { ICreatedMessageEvent } from "../../models/created_message_event";
-import { INewMessage, MessageModel } from "../../models/message";
-import * as documentDbUtils from "../../utils/documentdb";
+import { IContext } from "../azure-functions-types";
+import { ICreatedMessageEvent } from "../models/created_message_event";
+import { INewMessage, MessageModel } from "../models/message";
+import * as documentDbUtils from "../utils/documentdb";
 
 /**
  * Input and output bindings for this function
@@ -49,8 +49,12 @@ export function submitMessageforUser(
     // the message to the output binding of this function
     context.bindings.createdMessage = createdMessage;
 
-    // TODO: this will return all internal attrs, only return "public" attributes
-    response.json(result);
+    response.status(201).json({
+      id: message.id,
+      status: {
+        created_at: new Date(Date.now()).toISOString()
+      }
+    });
   });
 }
 
