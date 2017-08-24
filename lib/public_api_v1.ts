@@ -51,11 +51,11 @@ const registerSwaggerMiddleware = (config: any) =>
       (err: Error, middleware: swaggerExpress.ConnectMiddleware) => {
         if (err) {
           reject(err);
-          return;
+        } else {
+          middleware.register(app);
+          setSwaggerReponseValidationErrorHandler(middleware);
+          resolve(app);
         }
-        middleware.register(app);
-        setSwaggerReponseValidationErrorHandler(middleware);
-        resolve(app);
       }
     );
   });
@@ -75,11 +75,9 @@ interface IContextHttp extends IContext {
 }
 
 // @TODO make this async or the first request will fail
-Promise.all(APIs.map(setupswaggerApi))
-  .then(() => {
-    "initialized";
-  })
-  .catch(e => e);
+Promise.all(APIs.map(setupswaggerApi)).then(() => {
+  "initialized";
+});
 
 const handler = createAzureFunctionHandler(app);
 

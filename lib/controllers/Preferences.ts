@@ -18,7 +18,10 @@ export function getUserPreferences(
   request: express.Request,
   response: express.Response
 ) {
-  const fiscalCode = (request as any).swagger.params.fiscal_code.value;
+  const fiscalCode: FiscalCode = httpReq.getParam(
+    request.swagger.params.fiscal_code.value
+  );
+
   Profile.findOneProfileByFiscalCode(fiscalCode).then(result => {
     if (result != null) {
       response.json({ fiscal_code: result.fiscalCode, email: result.email });
