@@ -1,16 +1,18 @@
 import * as codiceFiscaleItaliano from "codice-fiscale-italiano";
+import { IValidable } from "./validable";
 
-declare class FiscalCodeTag {
-  private dummy: boolean;
-}
-
-export type FiscalCode = string & FiscalCodeTag;
-
-/**
- * Type guard for strings that represent fiscal codes.
- *
- * @param cf Uppercase fiscal code
- */
-export function isFiscalCode(cf: string): cf is FiscalCode {
-  return cf.toUpperCase() === cf && codiceFiscaleItaliano.validateCF(cf);
+export class FiscalCode implements IValidable {
+  private cf: string;
+  constructor(cf: string) {
+    this.cf = cf;
+  }
+  public isValid(): boolean {
+    return (
+      this.cf.toUpperCase() === this.cf &&
+      codiceFiscaleItaliano.validateCF(this.cf)
+    );
+  }
+  public toString() {
+    return this.cf;
+  }
 }

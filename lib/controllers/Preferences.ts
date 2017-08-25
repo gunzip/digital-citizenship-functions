@@ -1,6 +1,8 @@
 import * as express from "express";
 import { INewProfile, ProfileModel } from "../models/profile";
 import * as documentDbUtils from "../utils/documentdb";
+import { FiscalCode } from "../utils/fiscalcode";
+import { HttpReq } from "../utils/httpreq";
 
 const Profile = new ProfileModel(
   documentDbUtils.getDocumentDBClient(),
@@ -18,11 +20,12 @@ export function getUserPreferences(
   request: express.Request,
   response: express.Response
 ) {
-  const fiscalCode: FiscalCode = httpReq.getParam(
-    request.swagger.params.fiscal_code.value
-  );
+  const httpReq = HttpReq.createInstance(request);
+  const fiscalCode: FiscalCode = httpReq.getObjectParam("fiscal_code", FiscalCode);
 
-  Profile.findOneProfileByFiscalCode(fiscalCode).then(result => {
+  // i know, this has to be fixed passing FiscalCode and not the string
+  // but it's just for example purposes
+  Profile.findOneProfileByFiscalCode(fiscalCode.toString()).then(result => {
     if (result != null) {
       response.json({ fiscal_code: result.fiscalCode, email: result.email });
     } else {
