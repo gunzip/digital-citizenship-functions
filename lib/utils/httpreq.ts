@@ -23,6 +23,8 @@ export class HttpReq {
   }
 
   public getObjectParam<T extends IValidable>(name: string, v: T): T {
+    // here takes place the actual conversion from a (string | object)
+    // extracted from the HTTP (express / swagger) request to a Typescript class
     return v.getFrom(this.getStringParam(name)) as T;
   }
 
