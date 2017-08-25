@@ -17,7 +17,8 @@ const Profile = new ProfileModel(
  * @TODO only return public visible attributes
  */
 
-export function _getUserPreferences(
+// private
+function _getUserPreferences(
   _: express.Request,
   response: express.Response,
   fiscalCode: FiscalCode,
@@ -34,6 +35,7 @@ export function _getUserPreferences(
   });
 }
 
+// exported controller with param types
 export const getUserPreferences = controller.mapRequestToParams(
   _getUserPreferences,
   {
