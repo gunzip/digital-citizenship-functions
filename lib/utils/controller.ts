@@ -8,6 +8,21 @@ export type RequestWithValidHandler = (
   ...validables: IValidable[]
 ) => void;
 
+/**
+ * Extract strings from request and map them to Typescript types.
+ *  
+ * @see IValidable
+ * 
+ * @param handler     the "typed" controller function
+ * @param validables  an object in this form:
+ *                    { "request_parameter_name_1": ExpectedType1.prototype, 
+ *                      "request_parameter_name_2": ExpectedType2.prototype }
+ * 
+ * ExpectedType is a class that implements IValidable interface.
+ * Object of these types have a factory function getFrom(requestParameter: string)
+ * which handles validation and throws an Error in case the validation fails.
+ * 
+ */
 export function mapRequestToParams(
   handler: RequestWithValidHandler,
   validables: { [name: string]: IValidable }
