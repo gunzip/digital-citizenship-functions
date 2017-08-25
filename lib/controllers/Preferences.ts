@@ -1,5 +1,6 @@
 import * as express from "express";
 import { INewProfile, ProfileModel } from "../models/profile";
+import * as controller from "../utils/controller";
 import * as documentDbUtils from "../utils/documentdb";
 import { FiscalCode } from "../utils/fiscalcode";
 import { HttpReq } from "../utils/httpreq";
@@ -16,13 +17,12 @@ const Profile = new ProfileModel(
  *
  * @TODO only return public visible attributes
  */
-export function getUserPreferences(
-  request: express.Request,
-  response: express.Response
-) {
-  const httpReq = HttpReq.createInstance(request);
-  const fiscalCode: FiscalCode = httpReq.getObjectParam("fiscal_code", FiscalCode);
 
+export function _getUserPreferences(
+  _: express.Request,
+  response: express.Response,
+  fiscalCode: FiscalCode
+) {
   // i know, this has to be fixed passing FiscalCode and not the string
   // but it's just for example purposes
   Profile.findOneProfileByFiscalCode(fiscalCode.toString()).then(result => {
@@ -33,6 +33,8 @@ export function getUserPreferences(
     }
   });
 }
+
+export const getUserPreferences = controller.getFor(_getUserPreferences, 'fiscal_code', FiscalCode)
 
 /**
  * Returns an updateProfile controller

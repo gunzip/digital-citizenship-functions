@@ -13,7 +13,7 @@
   paths:
     /specs/preferences-public:
       x-swagger-pipe: swagger_raw
-    /preferences/{fiscal_code}:
+    /preferences/{fiscal_code}/{foo_bar}:
       x-swagger-router-controller: "Preferences"
       get:
         operationId: "getUserPreferences"
@@ -30,6 +30,11 @@
       parameters:
         -
           name: "fiscal_code"
+          in: "path"
+          type: "string"
+          required: true
+        -
+          name: "foo_bar"
           in: "path"
           type: "string"
           required: true
