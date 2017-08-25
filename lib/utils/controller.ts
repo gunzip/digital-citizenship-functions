@@ -11,7 +11,7 @@ export type RequestWithValidHandler = (
 export function getFor<T extends IValidable>(
   handler: RequestWithValidHandler,
   name: string,
-  klass: new (param: string | object) => T
+  klass: T
 ): express.RequestHandler {
   return (
     request: express.Request,

@@ -17,21 +17,13 @@ export class HttpReq {
     this.req = req;
   }
 
-  public getStringParam(name: string) : string {
+  public getStringParam(name: string): string {
     this._checkParam(name);
     return this.req.swagger.params[name].value;
   }
 
-  public getObjectParam<T extends IValidable>(
-    name: string,
-    v: new (param: string | object) => T
-  ): T {
-    const param = this.getStringParam(name);
-    const validable = new v(param);
-    if (!validable.isValid()) {
-      throw new Error("Invalid parameter");
-    }
-    return validable;
+  public getObjectParam<T extends IValidable>(name: string, v: T): T {
+    return v.getFrom(this.getStringParam(name)) as T;
   }
 
   private _checkParam(name: string) {
@@ -42,7 +34,6 @@ export class HttpReq {
       !this.req.swagger.params[name]
     ) {
       throw new Error("Parameter not found in HTTP request");
-    }    
+    }
   }
-
 }

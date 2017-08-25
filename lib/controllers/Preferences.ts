@@ -3,7 +3,6 @@ import { INewProfile, ProfileModel } from "../models/profile";
 import * as controller from "../utils/controller";
 import * as documentDbUtils from "../utils/documentdb";
 import { FiscalCode } from "../utils/fiscalcode";
-import { HttpReq } from "../utils/httpreq";
 
 const Profile = new ProfileModel(
   documentDbUtils.getDocumentDBClient(),
@@ -23,6 +22,7 @@ export function _getUserPreferences(
   response: express.Response,
   fiscalCode: FiscalCode
 ) {
+  console.log(fiscalCode.toString());
   // i know, this has to be fixed passing FiscalCode and not the string
   // but it's just for example purposes
   Profile.findOneProfileByFiscalCode(fiscalCode.toString()).then(result => {
@@ -34,7 +34,11 @@ export function _getUserPreferences(
   });
 }
 
-export const getUserPreferences = controller.getFor(_getUserPreferences, 'fiscal_code', FiscalCode)
+export const getUserPreferences = controller.getFor(
+  _getUserPreferences,
+  "fiscal_code",
+  FiscalCode.prototype
+);
 
 /**
  * Returns an updateProfile controller

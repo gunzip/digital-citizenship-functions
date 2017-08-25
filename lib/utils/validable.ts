@@ -1,3 +1,3 @@
 export interface IValidable {
-  isValid() : boolean;
-} 
+  getFrom(c : string | object): IValidable;
+}
