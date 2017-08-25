@@ -20,11 +20,11 @@ const Profile = new ProfileModel(
 export function _getUserPreferences(
   _: express.Request,
   response: express.Response,
-  fiscalCode: FiscalCode
+  fiscalCode: FiscalCode,
+  __: FiscalCode
 ) {
-  console.log(fiscalCode.toString());
-  // i know, this has to be fixed passing FiscalCode and not the string
-  // but it's just for example purposes
+  // this has to be fixed passing FiscalCode and not the string
+  // but it's here just for debugging purposes
   Profile.findOneProfileByFiscalCode(fiscalCode.toString()).then(result => {
     if (result != null) {
       response.json({ fiscal_code: result.fiscalCode, email: result.email });
@@ -34,10 +34,12 @@ export function _getUserPreferences(
   });
 }
 
-export const getUserPreferences = controller.getFor(
+export const getUserPreferences = controller.mapRequestToParams(
   _getUserPreferences,
-  "fiscal_code",
-  FiscalCode.prototype
+  {
+    fiscal_code: FiscalCode.prototype,
+    foo_bar: FiscalCode.prototype
+  }
 );
 
 /**

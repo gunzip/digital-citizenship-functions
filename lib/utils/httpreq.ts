@@ -3,7 +3,7 @@ import { IValidable } from "./validable";
 
 declare module "express" {
   interface Request {
-    swagger: any;
+    swagger: { params: { [name: string]: { value: string } } };
   }
 }
 

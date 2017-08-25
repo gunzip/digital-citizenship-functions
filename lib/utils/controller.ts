@@ -5,13 +5,12 @@ import { IValidable } from "./validable";
 export type RequestWithValidHandler = (
   req: express.Request,
   res: express.Response,
-  klass: IValidable
-) => any;
+  ...validables: IValidable[]
+) => void;
 
-export function getFor<T extends IValidable>(
+export function mapRequestToParams(
   handler: RequestWithValidHandler,
-  name: string,
-  klass: T
+  validables: { [name: string]: IValidable }
 ): express.RequestHandler {
   return (
     request: express.Request,
@@ -19,7 +18,9 @@ export function getFor<T extends IValidable>(
     _: express.NextFunction
   ) => {
     const httpReq = HttpReq.createInstance(request);
-    const value = httpReq.getObjectParam(name, klass);
-    return handler(request, response, value);
+    const values = Object.keys(validables).map((k: string) => {
+      return httpReq.getObjectParam(k, validables[k]);
+    });
+    return handler.apply(null, [request, response, ...values]);
   };
 }
