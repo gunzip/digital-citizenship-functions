@@ -1,7 +1,7 @@
 import * as express from "express";
 import * as winston from "winston";
 
-import { option } from "ts-option";
+import * as async from "async";
 import { Either } from "./either";
 import { IResponse, ResponseErrorInternal } from "./response";
 
@@ -52,174 +52,6 @@ export type IRequestMiddleware<R extends IResponse, T> =
 // and each parameter must be of the same type returned by the corresponding middleware.
 //
 
-export function withRequestMiddlewaresX<
-  RH extends IResponse,
-  R1 extends IResponse,
-  T1
->(
-  v1: IRequestMiddleware<R1, T1>,
-): (handler: (v1: T1) => Promise<RH>) => RequestHandler<RH | R1>;
-
-export function withRequestMiddlewaresX<
-  RH extends IResponse,
-  R1 extends IResponse,
-  R2 extends IResponse,
-  T1, T2
->(
-  v1: IRequestMiddleware<R1, T1>,
-  v2: IRequestMiddleware<R2, T2>,
-): (handler: (v1: T1, v2: T2) => Promise<RH>) => RequestHandler<RH | R1 | R2>;
-
-export function withRequestMiddlewaresX<
-  RH extends IResponse,
-  R1 extends IResponse,
-  R2 extends IResponse,
-  R3 extends IResponse,
-  T1, T2, T3
->(
-  v1: IRequestMiddleware<R1, T1>,
-  v2: IRequestMiddleware<R2, T2>,
-  v3: IRequestMiddleware<R3, T3>,
-): (handler: (v1: T1, v2: T2, v3: T3) => Promise<RH>) => RequestHandler<RH | R1 | R2 | R3>;
-
-export function withRequestMiddlewaresX<
-  RH extends IResponse,
-  R1 extends IResponse,
-  R2 extends IResponse,
-  R3 extends IResponse,
-  R4 extends IResponse,
-  T1, T2, T3, T4
->(
-  v1: IRequestMiddleware<R1, T1>,
-  v2: IRequestMiddleware<R2, T2>,
-  v3: IRequestMiddleware<R3, T3>,
-  v4: IRequestMiddleware<R4, T4>,
-): (handler: (v1: T1, v2: T2, v3: T3, v4: T4) => Promise<RH>) => RequestHandler<RH | R1 | R2 | R3 | R4>;
-
-export function withRequestMiddlewaresX<
-  RH extends IResponse,
-  R1 extends IResponse,
-  R2 extends IResponse,
-  R3 extends IResponse,
-  R4 extends IResponse,
-  R5 extends IResponse,
-  T1, T2, T3, T4, T5
->(
-  v1: IRequestMiddleware<R1, T1>,
-  v2: IRequestMiddleware<R2, T2>,
-  v3: IRequestMiddleware<R3, T3>,
-  v4: IRequestMiddleware<R4, T4>,
-  v5: IRequestMiddleware<R5, T5>,
-): (handler: (v1: T1, v2: T2, v3: T3, v4: T4, v5: T5) => Promise<RH>) => RequestHandler<RH | R1 | R2 | R3 | R4 | R5>;
-
-/**
- * Returns a request handler wrapped with the provided middlewares.
- *
- * The wrapper will process the request with each provided middleware in sequence.
- * Each middleware will return a response or a value.
- * When a response gets returned, the response gets sent back to the client and the
- * processing stops.
- * When all the provided middlewares complete by returning a value, all the values
- * gets passed to the custom handler that in turn will return a response.
- * That final response gets sent to the client.
- */
-export function withRequestMiddlewaresX<
-  RH extends IResponse,
-  R1 extends IResponse,
-  R2 extends IResponse,
-  R3 extends IResponse,
-  R4 extends IResponse,
-  R5 extends IResponse,
-  T1, T2, T3, T4, T5
->(
-  v1: IRequestMiddleware<R1, T1>,
-  v2?: IRequestMiddleware<R2, T2>,
-  v3?: IRequestMiddleware<R3, T3>,
-  v4?: IRequestMiddleware<R4, T4>,
-  v5?: IRequestMiddleware<R5, T5>,
-): (handler: (v1: T1, v2?: T2, v3?: T3, v4?: T4, v5?: T5) => Promise<RH>) =>
-  RequestHandler<R1 | R2 | R3 | R4 | R5 | RH> {
-  return (handler) => {
-
-    // The outer promise with resolve to a type that can either be the the type returned
-    // by the handler or one of the types returned by any of the middlewares (i.e., when
-    // a middleware returns an error response).
-    return (request) => new Promise<R1 | R2 | R3 | R4 | R5 | RH>((resolve, reject) => {
-
-      // we execute each middleware in sequence, stopping at the first middleware that is
-      // undefined or when a middleware returns an error response.
-      // when we find an undefined middleware, we call the handler with all the results of
-      // the executed middlewares
-      v1(request).then((r1) => {
-        if (r1.isLeft) {
-          // 1st middleware returned a response
-          // stop processing the middlewares
-          resolve(r1.left);
-        } else if (v2 !== undefined) {
-          // 1st middleware returned a value
-          // process 2nd middleware
-          v2(request).then((r2) => {
-            if (r2.isLeft) {
-              // 2nd middleware returned a response
-              // stop processing the middlewares
-              resolve(r2.left);
-            } else if (v3 !== undefined) {
-              // process 3rd middleware
-              v3(request).then((r3) => {
-                if (r3.isLeft) {
-                  // 3rd middleware returned a response
-                  // stop processing the middlewares
-                  resolve(r3.left);
-                } else if (v4 !== undefined) {
-                  v4(request).then((r4) => {
-                    if (r4.isLeft) {
-                      // 4th middleware returned a response
-                      // stop processing the middlewares
-                      resolve(r4.left);
-                    } else if (v5 !== undefined) {
-                      v5(request).then((r5) => {
-                        if (r5.isLeft) {
-                          // 5th middleware returned a response
-                          // stop processing the middlewares
-                          resolve(r5.left);
-                        } else {
-                          // 5th middleware returned a value
-                          // run handler
-                          handler(r1.right, r2.right, r3.right, r4.right, r5.right).then(resolve, reject);
-                        }
-                      }, reject);
-                    } else {
-                      // 4th middleware returned a value
-                      // run handler
-                      handler(r1.right, r2.right, r3.right, r4.right).then(resolve, reject);
-                    }
-                  }, reject);
-                } else {
-                  // 3rd middleware returned a value
-                  // run handler
-                  handler(r1.right, r2.right, r3.right).then(resolve, reject);
-                }
-              }, reject);
-            } else {
-              // 2nd middleware returned a value
-              // run handler
-              handler(r1.right, r2.right).then(resolve, reject);
-            }
-          }, reject);
-        } else {
-          // 1st middleware returned a value
-          // run handler
-          handler(r1.right).then(resolve, reject);
-        }
-      }, reject);
-
-    });
-
-  };
-}
-
-/////////////
-
 function withRequestMiddlewaresAr
   // tslint:disable-next-line
   (middlewares: ReadonlyArray<IRequestMiddleware<IResponse, any>>):
@@ -234,23 +66,35 @@ function withRequestMiddlewaresAr
     // tslint:disable-next-line
     return (request) => new Promise<any>((resolve, reject) => {
 
-      Promise.all(middlewares.map((m) => m(request)))
-        .then((eithers) => {
-          const errors = eithers.filter((v) => v.isLeft);
-          option(errors.length).match({
-            none: () => {
-              const values = eithers.filter((v) => v.isRight);
-              handler.apply(values).then(resolve, reject);
-            },
-            some: () => {
-              const firstError = errors[0];
-              if (firstError.isLeft) {
-                resolve(firstError.left);
-              }
-            },
-          });
-      })
-      .catch((e) => reject(e));
+      // tslint:disable-next-line
+      const task = (middleware: IRequestMiddleware<IResponse, any>) => async (cb:
+        // tslint:disable-next-line
+        (err: Error | undefined, result?: any) => void) => {
+        if (middleware !== undefined) {
+          const response = await middleware(request);
+          if (response.isLeft) {
+            resolve(response.left);
+            return cb(new Error(response.left.kind));
+          } else {
+            return cb(undefined, response.right);
+          }
+        }
+      };
+
+      const tasks = middlewares
+          .map((mw) => task(mw))
+          .filter((t) => t !== undefined);
+
+      async.series(tasks,
+        (err, results) => {
+          if (err) {
+            reject(err);
+          } else {
+            handler
+              .apply(undefined, results)
+              .then(resolve, reject);
+          }
+      });
 
     });
   };
@@ -261,5 +105,5 @@ function withRequestMiddlewaresAr
   (...middlewares: Array<IRequestMiddleware<any, any>>):
   // tslint:disable-next-line
   (handler: (...values: any[]) => Promise<any>) => RequestHandler<any> {
-    return withRequestMiddlewaresAr.apply(middlewares);
+    return withRequestMiddlewaresAr(middlewares);
   }
