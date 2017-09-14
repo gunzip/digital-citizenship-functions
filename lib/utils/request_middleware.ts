@@ -1,6 +1,7 @@
 import * as express from "express";
 import * as winston from "winston";
 
+import { option } from "ts-option";
 import { Either } from "./either";
 import { IResponse, ResponseErrorInternal } from "./response";
 
@@ -51,7 +52,7 @@ export type IRequestMiddleware<R extends IResponse, T> =
 // and each parameter must be of the same type returned by the corresponding middleware.
 //
 
-export function withRequestMiddlewares<
+export function withRequestMiddlewaresX<
   RH extends IResponse,
   R1 extends IResponse,
   T1
@@ -59,7 +60,7 @@ export function withRequestMiddlewares<
   v1: IRequestMiddleware<R1, T1>,
 ): (handler: (v1: T1) => Promise<RH>) => RequestHandler<RH | R1>;
 
-export function withRequestMiddlewares<
+export function withRequestMiddlewaresX<
   RH extends IResponse,
   R1 extends IResponse,
   R2 extends IResponse,
@@ -69,7 +70,7 @@ export function withRequestMiddlewares<
   v2: IRequestMiddleware<R2, T2>,
 ): (handler: (v1: T1, v2: T2) => Promise<RH>) => RequestHandler<RH | R1 | R2>;
 
-export function withRequestMiddlewares<
+export function withRequestMiddlewaresX<
   RH extends IResponse,
   R1 extends IResponse,
   R2 extends IResponse,
@@ -81,7 +82,7 @@ export function withRequestMiddlewares<
   v3: IRequestMiddleware<R3, T3>,
 ): (handler: (v1: T1, v2: T2, v3: T3) => Promise<RH>) => RequestHandler<RH | R1 | R2 | R3>;
 
-export function withRequestMiddlewares<
+export function withRequestMiddlewaresX<
   RH extends IResponse,
   R1 extends IResponse,
   R2 extends IResponse,
@@ -95,7 +96,7 @@ export function withRequestMiddlewares<
   v4: IRequestMiddleware<R4, T4>,
 ): (handler: (v1: T1, v2: T2, v3: T3, v4: T4) => Promise<RH>) => RequestHandler<RH | R1 | R2 | R3 | R4>;
 
-export function withRequestMiddlewares<
+export function withRequestMiddlewaresX<
   RH extends IResponse,
   R1 extends IResponse,
   R2 extends IResponse,
@@ -122,7 +123,7 @@ export function withRequestMiddlewares<
  * gets passed to the custom handler that in turn will return a response.
  * That final response gets sent to the client.
  */
-export function withRequestMiddlewares<
+export function withRequestMiddlewaresX<
   RH extends IResponse,
   R1 extends IResponse,
   R2 extends IResponse,
@@ -216,3 +217,49 @@ export function withRequestMiddlewares<
 
   };
 }
+
+/////////////
+
+function withRequestMiddlewaresAr
+  // tslint:disable-next-line
+  (middlewares: ReadonlyArray<IRequestMiddleware<IResponse, any>>):
+  // tslint:disable-next-line
+  (handler: (...values: any[]) => Promise<any>) => RequestHandler<any> {
+  return (handler) => {
+
+    // The outer promise with resolve to a type that can either be the the type returned
+    // by the handler or one of the types returned by any of the middlewares (i.e., when
+    // a middleware returns an error response).
+
+    // tslint:disable-next-line
+    return (request) => new Promise<any>((resolve, reject) => {
+
+      Promise.all(middlewares.map((m) => m(request)))
+        .then((eithers) => {
+          const errors = eithers.filter((v) => v.isLeft);
+          option(errors.length).match({
+            none: () => {
+              const values = eithers.filter((v) => v.isRight);
+              handler.apply(values).then(resolve, reject);
+            },
+            some: () => {
+              const firstError = errors[0];
+              if (firstError.isLeft) {
+                resolve(firstError.left);
+              }
+            },
+          });
+      })
+      .catch((e) => reject(e));
+
+    });
+  };
+ }
+
+ export function withRequestMiddlewares
+  // tslint:disable-next-line
+  (...middlewares: Array<IRequestMiddleware<any, any>>):
+  // tslint:disable-next-line
+  (handler: (...values: any[]) => Promise<any>) => RequestHandler<any> {
+    return withRequestMiddlewaresAr.apply(middlewares);
+  }
