@@ -67,9 +67,10 @@ function withRequestMiddlewaresAr
     return (request) => new Promise<any>((resolve, reject) => {
 
       // tslint:disable-next-line
-      const task = (middleware: IRequestMiddleware<IResponse, any>) => async (cb:
-        // tslint:disable-next-line
-        (err: Error | undefined, result?: any) => void) => {
+      const task = (middleware: IRequestMiddleware<IResponse, any>) => 
+
+      // tslint:disable-next-line
+        async (cb: (err: Error | undefined, result?: any) => void) => {
         if (middleware !== undefined) {
           const response = await middleware(request);
           if (response.isLeft) {
@@ -98,7 +99,7 @@ function withRequestMiddlewaresAr
 
     });
   };
- }
+}
 
  export function withRequestMiddlewares
   // tslint:disable-next-line
