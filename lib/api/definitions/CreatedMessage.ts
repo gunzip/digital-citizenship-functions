@@ -9,12 +9,17 @@
 import { isFiscalCode, FiscalCode } from "./FiscalCode";
 import { isTimeToLive, TimeToLive } from "./TimeToLive";
 import { isMessageContent, MessageContent } from "./MessageContent";
+import { isString, isNotNil } from "ramda-adjunct";
+import {
+  validateAll,
+  hasErrors,
+  getErrorStrings
+} from "../../utils/validation";
+import { Either, left, right } from "../../utils/either";
 
 /**
  * 
  */
-
-import { option, Option } from "ts-option";
 
 export interface CreatedMessage {
   readonly id?: string;
@@ -28,20 +33,46 @@ export interface CreatedMessage {
   readonly sender_organization_id: string;
 }
 
+const validationRules = {
+  content: [[isMessageContent, "message content has errors"]],
+  fiscal_code: [[isFiscalCode, "must be a fiscal code"]],
+  id: [[isNotNil, `id must be defined`], [isString, `id must be a string`]],
+  sender_organization_id: [[isString, "send org id has errors"]],
+  time_to_live: [
+    [isNotNil, "time to live must be defined"],
+    [isTimeToLive, "time to live has invalid format"]
+  ]
+};
+
 export function isCreatedMessage(arg: any): arg is CreatedMessage {
-  return (
-    arg &&
-    (arg.id === undefined || arg.id === null || typeof arg.id === "string") &&
-    isFiscalCode(arg.fiscal_code) &&
-    (arg.time_to_live === undefined ||
-      arg.time_to_live === null ||
-      isTimeToLive(arg.time_to_live)) &&
-    isMessageContent(arg.content) &&
-    typeof arg.sender_organization_id === "string" &&
-    true
-  );
+  const validation = validateAll([arg, validationRules]);
+  return !hasErrors(validation);
 }
 
-export function toCreatedMessage(arg: any): Option<CreatedMessage> {
-  return option(arg).filter(isCreatedMessage);
+export function toCreatedMessage(
+  arg: any
+): Either<ReadonlyArray<string>, CreatedMessage> {
+  if (!isCreatedMessage(arg)) {
+    // here we run validation two times just to get errors
+    // as the type guard function can only return booleans
+    const validation = validateAll([arg, validationRules]);
+    return left(getErrorStrings(validation));
+  }
+  return right(arg);
 }
+
+// const input = {
+//   content: {
+//     body_long: "xxx",
+//     body_short: "xxx"
+//   },
+//   fiscal_code: "SPNDNL50R13C523K",
+//   id: "0",
+//   sender_organization_id: 1,
+//   time_to_live: 1
+// };
+
+// const errors = validateAll([input, validationRules]);
+
+// // tslint:disable:no-console
+// console.log(getErrorStrings(errors));
