@@ -14,6 +14,7 @@ import { Either, left, right } from "./either";
 type TValidationResult = Either<string, any>;
 
 interface IValidationResults {
+  // tslint:disable-next-line:readonly-array
   readonly [index: string]: ReadonlyArray<Either<string, {}>>;
 }
 
@@ -47,14 +48,22 @@ export const hasErrors = compose(
 export const getErrorStrings = (validation: IValidationResults) =>
   filter<string>(
     isNotEmpty,
-    map(e => (e.isLeft ? e.left : ""), getErrors(validation))
+    map<TValidationResult, string>(e => (e.isLeft ? e.left : ""))(
+      getErrors(validation)
+    )
   );
 
 export const getErrors = (validation: IValidationResults) => {
-  // tslint:disable-next-line:readonly-array
-  return compose<{}, {}, {}, TValidationResult[]>(
-    filter<TValidationResult>(e => e !== undefined),
-    flatten,
-    values
-  )(validation);
+  return compose<
+    // typeof values input
+    IValidationResults,
+    // typeof values return
+    ReadonlyArray<ReadonlyArray<TValidationResult>>,
+    // typeof flatten return
+    ReadonlyArray<TValidationResult>,
+    // typeof filter return
+    ReadonlyArray<TValidationResult>
+  >(filter(e => e !== undefined), v => flatten<TValidationResult>(v), values)(
+    validation
+  );
 };
