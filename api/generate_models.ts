@@ -6,6 +6,13 @@ import * as prettier from "prettier";
 import * as SwaggerParser from "swagger-parser";
 import { Spec } from "swagger-schema-official";
 
+/**
+ * Generate typescript interfaces from OpenAPI (swagger) specs.
+ * 
+ * @param e               a configuration environment for nunjucks templating engine
+ * @param specFileName    file name of the OpenAPI spec (must be inside 'api' directory)
+ * @param root            the output directory root for generated files
+ */
 async function generateModelsFromApi(
   e: nunjucks.Environment,
   specFileName: string,
