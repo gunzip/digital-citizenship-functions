@@ -13,6 +13,8 @@ import { isString, isNotNil } from "ramda-adjunct";
 import {
   validateAll,
   hasErrors,
+  IValidationResults,
+  IValidationRules,
   getErrorStrings
 } from "../../utils/validation";
 import { Either, left, right } from "../../utils/either";
@@ -33,7 +35,7 @@ export interface CreatedMessage {
   readonly sender_organization_id: string;
 }
 
-const validationRules = {
+const validationRules: IValidationRules<CreatedMessage> = {
   content: [[isMessageContent, "message content has errors"]],
   fiscal_code: [[isFiscalCode, "must be a fiscal code"]],
   id: [[isNotNil, `id must be defined`], [isString, `id must be a string`]],
@@ -44,21 +46,19 @@ const validationRules = {
   ]
 };
 
-export function isCreatedMessage(arg: any): arg is CreatedMessage {
-  const validation = validateAll([arg, validationRules]);
-  return !hasErrors(validation);
-}
+const isCreatedMessage = (
+  arg: any,
+  validation: IValidationResults = {}
+): arg is CreatedMessage =>
+  !hasErrors((validation = validateAll([arg, validationRules])));
 
 export function toCreatedMessage(
   arg: any
 ): Either<ReadonlyArray<string>, CreatedMessage> {
-  if (!isCreatedMessage(arg)) {
-    // here we run validation two times just to get errors
-    // as the type guard function can only return booleans
-    const validation = validateAll([arg, validationRules]);
-    return left(getErrorStrings(validation));
-  }
-  return right(arg);
+  const validation: IValidationResults = {};
+  return !isCreatedMessage(arg, validation)
+    ? left(getErrorStrings(validation))
+    : right(arg);
 }
 
 // const input = {
@@ -69,10 +69,10 @@ export function toCreatedMessage(
 //   fiscal_code: "SPNDNL50R13C523K",
 //   id: "0",
 //   sender_organization_id: 1,
-//   time_to_live: 1
+//   time_to_live: 3600
 // };
 
-// const errors = validateAll([input, validationRules]);
+// const yerrors = validateAll([input, validationRules]);
 
 // // tslint:disable:no-console
-// console.log(getErrorStrings(errors));
+// console.log(getErrorStrings(yerrors));
