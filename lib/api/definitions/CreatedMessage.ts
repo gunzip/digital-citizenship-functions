@@ -6,18 +6,22 @@
 // tslint:disable:interface-name
 // tslint:disable:no-any
 
-import { isFiscalCode, FiscalCode } from "./FiscalCode";
-import { isTimeToLive, TimeToLive } from "./TimeToLive";
-import { isMessageContent, MessageContent } from "./MessageContent";
-import { isString, isNotNil } from "ramda-adjunct";
+import { Either, left, right } from "../../utils/either";
+
+import { FiscalCode } from "./FiscalCode";
+import { TimeToLive } from "./TimeToLive";
+import { MessageContent } from "./MessageContent";
 import {
   validateAll,
   hasErrors,
-  IValidationResults,
-  IValidationRules,
-  getErrorStrings
+  getErrorStrings,
+  TValidationError
 } from "../../utils/validation";
-import { Either, left, right } from "../../utils/either";
+
+const SCHEMA_KEY = "specs#/definitions/CreatedMessage";
+
+// tslint:disable-next-line
+// console.log(ajv.getSchema(SCHEMA_KEY));
 
 /**
  * 
@@ -35,44 +39,31 @@ export interface CreatedMessage {
   readonly sender_organization_id: string;
 }
 
-const validationRules: IValidationRules<CreatedMessage> = {
-  content: [[isMessageContent, "message content has errors"]],
-  fiscal_code: [[isFiscalCode, "must be a fiscal code"]],
-  id: [[isNotNil, `id must be defined`], [isString, `id must be a string`]],
-  sender_organization_id: [[isString, "send org id has errors"]],
-  time_to_live: [
-    [isNotNil, "time to live must be defined"],
-    [isTimeToLive, "time to live has invalid format"]
-  ]
-};
-
-const isCreatedMessage = (
-  arg: any,
-  validation: IValidationResults = {}
-): arg is CreatedMessage =>
-  !hasErrors((validation = validateAll([arg, validationRules])));
+const isCreatedMessage = (arg: any, validation = {}): arg is CreatedMessage =>
+  !hasErrors((validation = validateAll(SCHEMA_KEY, arg)));
 
 export function toCreatedMessage(
   arg: any
-): Either<ReadonlyArray<string>, CreatedMessage> {
-  const validation: IValidationResults = {};
+): Either<ReadonlyArray<TValidationError>, CreatedMessage> {
+  const validation = {};
   return !isCreatedMessage(arg, validation)
     ? left(getErrorStrings(validation))
     : right(arg);
 }
 
-// const input = {
-//   content: {
-//     body_long: "xxx",
-//     body_short: "xxx"
-//   },
-//   fiscal_code: "SPNDNL50R13C523K",
-//   id: "0",
-//   sender_organization_id: 1,
-//   time_to_live: 3600
-// };
+const input = {
+  content: {
+    body_long: "xxx",
+    body_short: "xxx"
+  },
+  extra: true,
+  fiscal_code: "SPNDNL50R13C523K",
+  id: "0",
+  sender_organization_id: 1,
+  time_to_live: 3600
+};
 
-// const yerrors = validateAll([input, validationRules]);
+const yerrors = validateAll(SCHEMA_KEY, input);
 
-// // tslint:disable:no-console
-// console.log(getErrorStrings(yerrors));
+// tslint:disable:no-console
+console.log(getErrorStrings(yerrors));
